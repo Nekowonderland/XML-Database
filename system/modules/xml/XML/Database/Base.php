@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: stefan
@@ -6,7 +7,7 @@
  * Time: 23:09
  */
 
-namespace Neko\XML;
+namespace Neko\XML\Database;
 
 use DOMDocument;
 use DOMElement;
@@ -15,7 +16,7 @@ use SimpleXMLElement;
 use SimpleXMLIterator;
 use XMLReader;
 
-class XmlDatabase
+abstract class Base
 {
 	/**
 	 * Path to the xml file.
@@ -74,22 +75,6 @@ class XmlDatabase
 	protected $intAI = 1;
 
 	/**
-	 * The base XML.
-	 *
-	 * @var string
-	 */
-	protected $strBaseXml =
-		"<?xml version=\"1.0\"?>
-		<files>
-			<meta>
-				<ai>1</ai>
-				<last_add>0</last_add>
-			</meta>
-			<data>
-			</data>
-		</files>";
-
-	/**
 	 * @param string  $strPath   Path to the file.
 	 *
 	 * @param boolean $blnCreate If true don't check if we have the file.
@@ -107,15 +92,14 @@ class XmlDatabase
 		// Set the base vars.
 		$this->strPath = $strPath;
 
-		// Open.
+		// Create.
 		if ($blnCreate)
 		{
 			$this->create();
 		}
-		else
-		{
-			$this->open();
-		}
+
+		// Open.
+		$this->open();
 	}
 
 	/**
@@ -125,6 +109,31 @@ class XmlDatabase
 	{
 		$this->save();
 	}
+
+	/* ---------------------------------------------------------------------------------
+	 * Abstract part.
+	 */
+
+	/**
+	 * Return the basic XML.
+	 *
+	 * @return mixed
+	 */
+	abstract public function getBaseXML();
+
+	/**
+	 * Return the xpath for the data.
+	 *
+	 * @return mixed
+	 */
+	abstract public function getXpathData();
+
+	/**
+	 * Get the name of the tags.
+	 *
+	 * @return mixed
+	 */
+	abstract public function getDataTagName();
 
 	/* ---------------------------------------------------------------------------------
 	 * Open and close.
@@ -165,16 +174,16 @@ class XmlDatabase
 	public function create()
 	{
 		$this->objFile = new \File($this->strPath, false);
-		$this->objFile->write($this->strBaseXml);
+		$this->objFile->write($this->getBaseXML());
 		$this->objFile->close();
 	}
 
 	/**
-	 * Add a new file to the list.
+	 * Add a new data tag to the list.
 	 *
-	 * @param $arrData
+	 * @param array $arrData The Data to add.
 	 */
-	public function addFile($arrData)
+	public function addData($arrData)
 	{
 		// Set the flag.
 		$this->blnHasChanged = true;
@@ -184,11 +193,11 @@ class XmlDatabase
 
 		// Grab a node.
 		$xpath        = new DOMXPath($this->objXmlWrite);
-		$results      = $xpath->query('/files/data');
+		$results      = $xpath->query($this->getXpathData());
 		$objFirstNode = $results->item(0);
 
 		// Create a new, free standing node
-		$objNewNode = $this->objXmlWrite->createElement('file');
+		$objNewNode = $this->objXmlWrite->createElement($this->getDataTagName());
 
 		// If we have a attributes array add it.
 		if (isset($arrData['attributes']))
@@ -266,7 +275,7 @@ class XmlDatabase
 		}
 
 		// Read each file.
-		while ($this->objXMLReader->next('file'))
+		while ($this->objXMLReader->next($this->getDataTagName()))
 		{
 			$node             = new SimpleXmlIterator($this->objXMLReader->readOuterXML());
 			$this->arrCurrent = $this->readXML($node);
@@ -325,7 +334,7 @@ class XmlDatabase
 	{
 		$arrReturn = array();
 
-		if ($objXmlIterator->getName() == 'file')
+		if ($objXmlIterator->getName() == $this->getDataTagName())
 		{
 			/** @var SimpleXmlIterator $objAttribute */
 			foreach ($objXmlIterator->attributes() as $objAttribute)
