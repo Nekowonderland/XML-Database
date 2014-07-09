@@ -228,6 +228,7 @@ abstract class Base
 	{
 		if ($this->blnHasChanged)
 		{
+			$this->objXmlWrite->loadXML($this->objXmlWrite->saveXML());
 			$this->objXmlWrite->save(TL_ROOT . DIRECTORY_SEPARATOR . $this->strPath);
 		}
 
