@@ -407,5 +407,61 @@ abstract class Base
 			}
 		}
 	}
+	
+	/**
+	 * Function for adding the files to the list.
+	 *
+	 * @param DomDocument $objXml
+	 *
+	 * @param DOMElement  $objParentNode
+	 *
+	 * @param array       $arrData
+	 */
+	protected function addComplexNodes($objXml, $objParentNode, $arrData)
+	{
+		foreach ($arrData as $strName => $mixData)
+		{
+			// Create a new, free standing node.
+			$objNewNode = $objXml->createElement($strName);
+
+			// Add comments.
+			if (isset($mixData['comment']))
+			{
+				// Add the comment.
+				$objCommentNode = $objXml->createComment($mixData['comment']);
+
+				// Append the node.
+				$objParentNode->appendChild($objCommentNode);
+			}
+
+			// Add values.
+			if (isset($mixData['value']))
+			{
+				// Add the text.
+				if (stripos($mixData['value'], '<') !== false || stripos($mixData['value'], '>') !== false)
+				{
+					$objTextNode = $objXml->createCDATASection($mixData['value']);
+				}
+				else
+				{
+					$objTextNode = $objXml->createTextNode($mixData['value']);
+				}
+
+				// Append the text.
+				$objNewNode->appendChild($objTextNode);
+				// Append the node.
+				$objParentNode->appendChild($objNewNode);
+			}
+
+			// Add children.
+			if (isset($mixData['children']) && is_array($mixData['children']))
+			{
+				// Add the sub bodes.
+				$this->addNodes($objXml, $objNewNode, $mixData['children']);
+				// Append it.
+				$objParentNode->appendChild($objNewNode);
+			}
+		}
+	}
 }
 
