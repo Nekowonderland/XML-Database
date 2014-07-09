@@ -45,6 +45,13 @@ abstract class Base
 	 * @var DomDocument
 	 */
 	protected $objXmlWrite = null;
+	
+	/**
+	 * Xpath for searching.
+	 *
+	 * @var DOMXPath
+	 */
+	protected $objXpath = null;
 
 	/**
 	 * Data with the current file.
