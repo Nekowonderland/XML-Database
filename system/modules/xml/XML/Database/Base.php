@@ -156,6 +156,9 @@ abstract class Base
 		$this->objXmlWrite->formatOutput       = true;
 		// Open the file.
 		$this->objXmlWrite->load(TL_ROOT . DIRECTORY_SEPARATOR . $this->strPath);
+		
+		// Get the Xpath object.
+		$this->objXpath = new DOMXPath($this->objXmlWrite);
 	}
 
 	/**
@@ -192,8 +195,7 @@ abstract class Base
 		$arrData['attributes']['id'] = $this->intAI++;
 
 		// Grab a node.
-		$xpath        = new DOMXPath($this->objXmlWrite);
-		$results      = $xpath->query($this->getXpathData());
+		$results      = $this->objXpath->query($this->getXpathData());
 		$objFirstNode = $results->item(0);
 
 		// Create a new, free standing node
