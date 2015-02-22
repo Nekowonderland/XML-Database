@@ -25,6 +25,7 @@ ClassLoader::addNamespaces(array
  */
 ClassLoader::addClasses(array
 (
-	'Neko\XML\Database\Base' => 'system/modules/xml/XML/Database/Base.php',
-	'Neko\XML\Database\File' => 'system/modules/xml/XML/Database/File.php',
+	'Neko\XML\Database\Base'  => 'system/modules/xml/XML/Database/Base.php',
+	'Neko\XML\Database\File'  => 'system/modules/xml/XML/Database/File.php',
+	'Neko\XML\Database\Model' => 'system/modules/xml/XML/Database/Model.php',
 ));
