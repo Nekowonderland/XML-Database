@@ -45,7 +45,7 @@ abstract class Base
 	 * @var DomDocument
 	 */
 	protected $objXmlWrite = null;
-	
+
 	/**
 	 * Xpath for searching.
 	 *
@@ -91,7 +91,7 @@ abstract class Base
 	public function __construct($strPath, $blnCreate)
 	{
 		// Check if we have the path.
-		if (!$blnCreate && !file_exists(TL_ROOT . DIRECTORY_SEPARATOR . $strPath))
+		if ( !$blnCreate && !file_exists(TL_ROOT . DIRECTORY_SEPARATOR . $strPath) )
 		{
 			throw new \RuntimeException('Could not found file for reading');
 		}
@@ -100,7 +100,7 @@ abstract class Base
 		$this->strPath = $strPath;
 
 		// Create.
-		if ($blnCreate)
+		if ( $blnCreate )
 		{
 			$this->create();
 		}
@@ -143,6 +143,75 @@ abstract class Base
 	abstract public function getDataTagName();
 
 	/* ---------------------------------------------------------------------------------
+	 * Find by ...
+	 */
+
+	/**
+	 * Find a element by the ID.
+	 *
+	 * @param int $intID The id we want.
+	 *
+	 * @return array|null A list with the fields or null if the id isn't found.
+	 */
+	public function findById($intID)
+	{
+		$strQuery = sprintf('/%s/%s[@id="%s"]', $this->getXpathData(), $this->getDataTagName(), $intID);
+		$entries  = $this->objXpath->query($strQuery);
+
+		// Check if we have some data.
+		if ( $entries->length == 0 )
+		{
+			return null;
+		}
+
+		return $this->readXML(simplexml_import_dom($entries->item(0)));
+	}
+
+	/**
+	 * Find a element by a given field and value.
+	 *
+	 * @param string|array $mixFieldPath The path of the field. Use a array to get a deep search.
+	 *
+	 * @param string       $mixData      The searched value.
+	 *
+	 * @return array|null A list with the fields or null if the id isn't found.
+	 */
+	public function findBy($mixFieldPath, $mixData)
+	{
+		// Make a array from the data.
+		$mixFieldPath = (is_array($mixFieldPath)) ? $mixFieldPath : array($mixFieldPath);
+
+		// Build the path and execute it.
+		$strQuery = sprintf('/%s/%s/%s[.="%s"]', $this->getXpathData(), $this->getDataTagName(), implode('/', $mixFieldPath), $mixData);
+		$entries  = $this->objXpath->query($strQuery);
+
+		// Check if we have some data.
+		if ( $entries->length == 0 )
+		{
+			return null;
+		}
+
+		$arrQuery = array();
+
+		/** @var DOMElement $entry */
+		foreach ( $entries as $entry )
+		{
+			$arrQuery[] = str_replace(sprintf('/%s', implode('/', $mixFieldPath)), '', $entry->getNodePath());
+		}
+
+		// Get the parent elements.
+		$entries = $this->objXpath->query(implode('|', $arrQuery));
+
+		// Check if we have some data.
+		if ( $entries->length == 0 )
+		{
+			throw new \RuntimeException('We could not find the parent nodes.');
+		}
+
+		return new Model($entries, $this);
+	}
+
+	/* ---------------------------------------------------------------------------------
 	 * Open and close.
 	 */
 
@@ -163,7 +232,7 @@ abstract class Base
 		$this->objXmlWrite->formatOutput       = true;
 		// Open the file.
 		$this->objXmlWrite->load(TL_ROOT . DIRECTORY_SEPARATOR . $this->strPath);
-		
+
 		// Get the Xpath object.
 		$this->objXpath = new DOMXPath($this->objXmlWrite);
 	}
@@ -209,9 +278,9 @@ abstract class Base
 		$objNewNode = $this->objXmlWrite->createElement($this->getDataTagName());
 
 		// If we have a attributes array add it.
-		if (isset($arrData['attributes']))
+		if ( isset($arrData['attributes']) )
 		{
-			foreach ($arrData['attributes'] as $strName => $strValue)
+			foreach ( $arrData['attributes'] as $strName => $strValue )
 			{
 				$objNewNode->setAttribute($strName, $strValue);
 			}
@@ -235,7 +304,7 @@ abstract class Base
 	 */
 	public function save()
 	{
-		if ($this->blnHasChanged)
+		if ( $this->blnHasChanged )
 		{
 			$this->objXmlWrite->loadXML($this->objXmlWrite->saveXML());
 			$this->objXmlWrite->save(TL_ROOT . DIRECTORY_SEPARATOR . $this->strPath);
@@ -265,16 +334,16 @@ abstract class Base
 	public function next()
 	{
 		// Skip the first line and set the pointer at the first file.
-		if ($this->blnFirstNext)
+		if ( $this->blnFirstNext )
 		{
 			$this->blnFirstNext = false;
 
 			// Search the data tag
-			while ($this->objXMLReader->read())
+			while ( $this->objXMLReader->read() )
 			{
-				if ($this->objXMLReader->localName == 'data')
+				if ( $this->objXMLReader->localName == 'data' )
 				{
-					if (!$this->objXMLReader->read())
+					if ( !$this->objXMLReader->read() )
 					{
 						return false;
 					}
@@ -285,7 +354,7 @@ abstract class Base
 		}
 
 		// Read each file.
-		while ($this->objXMLReader->next($this->getDataTagName()))
+		while ( $this->objXMLReader->next($this->getDataTagName()) )
 		{
 			$node             = new SimpleXmlIterator($this->objXMLReader->readOuterXML());
 			$this->arrCurrent = $this->readXML($node);
@@ -315,21 +384,22 @@ abstract class Base
 	 */
 	protected function readMeta()
 	{
-		if ($this->objXMLReader->read() && $this->objXMLReader->read())
+		if ( $this->objXMLReader->read() && $this->objXMLReader->read() )
 		{
 			// Read each file.
-			while ($this->objXMLReader->next('meta'))
+			while ( $this->objXMLReader->next('meta') )
 			{
 				$node    = new SimpleXmlIterator($this->objXMLReader->readOuterXML());
 				$arrMeta = $this->readXML($node);
 
 				// Read meta and set it.
-				if (isset($arrMeta['ai']))
+				if ( isset($arrMeta['ai']) )
 				{
 					$this->intAI = intval($arrMeta['ai']);
 				}
 
 				$this->rewind();
+
 				return;
 			}
 		}
@@ -340,26 +410,26 @@ abstract class Base
 	 *
 	 * @return array
 	 */
-	protected function readXML($objXmlIterator)
+	public function readXML($objXmlIterator)
 	{
 		$arrReturn = array();
 
-		if ($objXmlIterator->getName() == $this->getDataTagName())
+		if ( $objXmlIterator->getName() == $this->getDataTagName() )
 		{
 			/** @var SimpleXmlIterator $objAttribute */
-			foreach ($objXmlIterator->attributes() as $objAttribute)
+			foreach ( $objXmlIterator->attributes() as $objAttribute )
 			{
 				$strTagName                           = $objAttribute->getName();
 				$arrReturn['attributes'][$strTagName] = (string)$objAttribute;
 			}
 		}
 		/** @var SimpleXmlIterator $objXML */
-		foreach ($objXmlIterator as $objXML)
+		foreach ( $objXmlIterator as $objXML )
 		{
 			$strTagName        = $objXML->getName();
 			$arrReturnChildren = $this->readXML($objXML->children());
 
-			if (empty($arrReturnChildren))
+			if ( empty($arrReturnChildren) )
 			{
 				$arrReturn[$strTagName] = (string)$objXML;
 			}
@@ -383,9 +453,9 @@ abstract class Base
 	 */
 	protected function addNodes($objXml, $objParentNode, $arrData)
 	{
-		foreach ($arrData as $strName => $mixData)
+		foreach ( $arrData as $strName => $mixData )
 		{
-			if (is_array($mixData))
+			if ( is_array($mixData) )
 			{
 				// Create a new, free standing node.
 				$objNewNode = $objXml->createElement($strName);
@@ -407,7 +477,7 @@ abstract class Base
 			}
 		}
 	}
-	
+
 	/**
 	 * Function for adding the files to the list.
 	 *
@@ -419,13 +489,13 @@ abstract class Base
 	 */
 	protected function addComplexNodes($objXml, $objParentNode, $arrData)
 	{
-		foreach ($arrData as $strName => $mixData)
+		foreach ( $arrData as $strName => $mixData )
 		{
 			// Create a new, free standing node.
 			$objNewNode = $objXml->createElement($strName);
 
 			// Add comments.
-			if (isset($mixData['comment']))
+			if ( isset($mixData['comment']) )
 			{
 				// Add the comment.
 				$objCommentNode = $objXml->createComment($mixData['comment']);
@@ -435,10 +505,10 @@ abstract class Base
 			}
 
 			// Add values.
-			if (isset($mixData['value']))
+			if ( isset($mixData['value']) )
 			{
 				// Add the text.
-				if (stripos($mixData['value'], '<') !== false || stripos($mixData['value'], '>') !== false)
+				if ( stripos($mixData['value'], '<') !== false || stripos($mixData['value'], '>') !== false )
 				{
 					$objTextNode = $objXml->createCDATASection($mixData['value']);
 				}
@@ -454,7 +524,7 @@ abstract class Base
 			}
 
 			// Add children.
-			if (isset($mixData['children']) && is_array($mixData['children']))
+			if ( isset($mixData['children']) && is_array($mixData['children']) )
 			{
 				// Add the sub bodes.
 				$this->addNodes($objXml, $objNewNode, $mixData['children']);
